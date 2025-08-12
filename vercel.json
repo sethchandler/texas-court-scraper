@@ -1,7 +1,1 @@
-{
-  "functions": {
-    "api/scrape.py": {
-      "runtime": "@vercel/python@3.9.16"
-    }
-  }
-}
+{}
