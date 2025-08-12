@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Texas Court PDF Scraper - Flask Version</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .main-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        
+        .card {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: none;
+            border-radius: 15px;
+        }
+        
+        .card-header {
+            background: linear-gradient(45deg, #2c3e50, #34495e);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            text-align: center;
+            padding: 1.5rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 10px;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            border: none;
+            border-radius: 10px;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+        }
+        
+        .status-section {
+            display: none;
+            margin-top: 2rem;
+        }
+        
+        .result-section {
+            display: none;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container main-container">
+        <div class="card">
+            <div class="card-header">
+                <h1><i class="fas fa-gavel"></i> Texas Court PDF Scraper</h1>
+                <p class="mb-0 mt-2">Flask Version - Using Proven Python Code</p>
+            </div>
+            
+            <div class="card-body">
+                <!-- Input Form -->
+                <div id="input-section">
+                    <form id="scrapeForm">
+                        <div class="mb-3">
+                            <label for="url" class="form-label">
+                                <i class="fas fa-link"></i> Court Case URL
+                            </label>
+                            <input type="url" class="form-control" id="url" name="url" required 
+                                   value="https://search.txcourts.gov/Case.aspx?cn=25-0687&coa=cossup"
+                                   placeholder="https://search.txcourts.gov/Case.aspx?cn=25-0674&coa=cossup">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="output-format" class="form-label">
+                                <i class="fas fa-file-text"></i> Output Format
+                            </label>
+                            <select class="form-select" id="output-format" name="output-format">
+                                <option value="separate">Separate text files (ZIP download)</option>
+                                <option value="merged">Single merged file with separators</option>
+                            </select>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-download"></i> Start Scraping
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Status Section -->
+                <div id="status-section" class="status-section">
+                    <div class="alert alert-info">
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border text-primary me-2"></div>
+                            <span id="status-text">Processing court case page...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Results Section -->
+                <div id="result-section" class="result-section">
+                    <div id="success-section" style="display: none;">
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> <span id="success-message">Scraping completed!</span>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button id="download-btn" class="btn btn-success btn-lg me-3">
+                                <i class="fas fa-download"></i> Download Files
+                            </button>
+                            <button class="btn btn-outline-primary btn-lg" onclick="resetForm()">
+                                <i class="fas fa-plus"></i> Scrape Another Case
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="error-section" style="display: none;">
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> <span id="error-message">An error occurred</span>
+                        </div>
+                        <div class="text-center">
+                            <button class="btn btn-outline-primary" onclick="resetForm()">
+                                <i class="fas fa-redo"></i> Try Again
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentJobId = null;
+        let statusInterval = null;
+
+        document.getElementById('scrapeForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const url = document.getElementById('url').value.trim();
+            const mergeTexts = document.getElementById('output-format').value === 'merged';
+            
+            if (!url) {
+                alert('Please enter a valid URL');
+                return;
+            }
+            
+            // Show status, hide input
+            document.getElementById('input-section').style.display = 'none';
+            document.getElementById('status-section').style.display = 'block';
+            document.getElementById('result-section').style.display = 'none';
+            
+            try {
+                const response = await fetch('/scrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        url: url,
+                        merge_texts: mergeTexts
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentJobId = data.job_id;
+                    startStatusPolling();
+                } else {
+                    showError(data.error || 'Failed to start scraping');
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            }
+        });
+        
+        function startStatusPolling() {
+            if (statusInterval) {
+                clearInterval(statusInterval);
+            }
+            
+            statusInterval = setInterval(async () => {
+                if (!currentJobId) return;
+                
+                try {
+                    const response = await fetch(`/status/${currentJobId}`);
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        updateStatus(data);
+                        
+                        if (data.status === 'completed') {
+                            clearInterval(statusInterval);
+                            showSuccess(data);
+                        } else if (data.status === 'error') {
+                            clearInterval(statusInterval);
+                            showError(data.error || 'Scraping failed');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Status polling error:', error);
+                }
+            }, 1000); // Poll every second for faster feedback
+        }
+        
+        function updateStatus(data) {
+            const statusMap = {
+                'starting': 'Starting scraper...',
+                'scraping': 'Analyzing page and finding PDFs...',
+                'downloading': 'Downloading and converting PDFs...'
+            };
+            
+            document.getElementById('status-text').textContent = 
+                statusMap[data.status] || `${data.status} (${data.processed_files}/${data.total_files})`;
+        }
+        
+        function showSuccess(data) {
+            document.getElementById('status-section').style.display = 'none';
+            document.getElementById('result-section').style.display = 'block';
+            document.getElementById('success-section').style.display = 'block';
+            document.getElementById('error-section').style.display = 'none';
+            
+            const message = `Found and processed ${data.file_count} documents`;
+            document.getElementById('success-message').textContent = message;
+            
+            document.getElementById('download-btn').onclick = function() {
+                window.location.href = `/download/${currentJobId}`;
+            };
+        }
+        
+        function showError(message) {
+            document.getElementById('status-section').style.display = 'none';
+            document.getElementById('result-section').style.display = 'block';
+            document.getElementById('success-section').style.display = 'none';
+            document.getElementById('error-section').style.display = 'block';
+            document.getElementById('error-message').textContent = message;
+        }
+        
+        function resetForm() {
+            currentJobId = null;
+            if (statusInterval) {
+                clearInterval(statusInterval);
+                statusInterval = null;
+            }
+            
+            document.getElementById('input-section').style.display = 'block';
+            document.getElementById('status-section').style.display = 'none';
+            document.getElementById('result-section').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
