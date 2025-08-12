@@ -240,7 +240,7 @@
             document.getElementById('result-section').style.display = 'none';
             
             try {
-                const response = await fetch('/.netlify/functions/scrape', {
+                const response = await fetch('/api/scrape', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

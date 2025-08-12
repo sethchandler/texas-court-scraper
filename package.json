@@ -8,7 +8,9 @@
     "build": "echo 'No build step required'",
     "deploy": "netlify deploy --prod"
   },
-  "dependencies": {},
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12"
+  },
   "devDependencies": {
     "netlify-cli": "^17.0.0"
   },

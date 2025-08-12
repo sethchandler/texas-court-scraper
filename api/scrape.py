@@ -23,8 +23,8 @@ def handler(request):
         return {
             'statusCode': 200,
             'headers': {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Origin': 'https://texas-court-scraper-5ve5.vercel.app',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type',
             },
             'body': ''
@@ -35,7 +35,7 @@ def handler(request):
         return {
             'statusCode': 405,
             'headers': {
-                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Origin': 'https://texas-court-scraper-5ve5.vercel.app',
                 'Content-Type': 'application/json',
             },
             'body': json.dumps({'error': 'Method not allowed'})
@@ -59,10 +59,45 @@ def handler(request):
             return {
                 'statusCode': 400,
                 'headers': {
-                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Origin': 'https://texas-court-scraper-5ve5.vercel.app',
                     'Content-Type': 'application/json',
                 },
                 'body': json.dumps({'error': 'URL is required'})
+            }
+        
+        # Security: Validate URL to prevent SSRF attacks
+        from urllib.parse import urlparse
+        try:
+            parsed = urlparse(url)
+            if parsed.scheme not in ('http', 'https'):
+                return {
+                    'statusCode': 400,
+                    'headers': {
+                        'Access-Control-Allow-Origin': 'https://texas-court-scraper-5ve5.vercel.app',
+                        'Content-Type': 'application/json',
+                    },
+                    'body': json.dumps({'error': 'Invalid URL scheme'})
+                }
+            
+            # Only allow Texas court websites
+            allowed_hosts = ['search.txcourts.gov']
+            if parsed.hostname not in allowed_hosts:
+                return {
+                    'statusCode': 400,
+                    'headers': {
+                        'Access-Control-Allow-Origin': 'https://texas-court-scraper-5ve5.vercel.app',
+                        'Content-Type': 'application/json',
+                    },
+                    'body': json.dumps({'error': 'URL not allowed. Only Texas court websites are supported.'})
+                }
+        except Exception:
+            return {
+                'statusCode': 400,
+                'headers': {
+                    'Access-Control-Allow-Origin': 'https://texas-court-scraper-5ve5.vercel.app',
+                    'Content-Type': 'application/json',
+                },
+                'body': json.dumps({'error': 'Invalid URL format'})
             }
         
         # Create temporary directory for this request
@@ -81,7 +116,7 @@ def handler(request):
             return {
                 'statusCode': 200,
                 'headers': {
-                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Origin': 'https://texas-court-scraper-5ve5.vercel.app',
                     'Content-Type': 'application/json',
                 },
                 'body': json.dumps({
@@ -140,7 +175,7 @@ def handler(request):
         return {
             'statusCode': 200,
             'headers': {
-                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Origin': 'https://texas-court-scraper-5ve5.vercel.app',
                 'Content-Type': 'application/json',
             },
             'body': json.dumps(response_data)
@@ -157,7 +192,7 @@ def handler(request):
         return {
             'statusCode': 500,
             'headers': {
-                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Origin': 'https://texas-court-scraper-5ve5.vercel.app',
                 'Content-Type': 'application/json',
             },
             'body': json.dumps({
